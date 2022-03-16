@@ -1,22 +1,23 @@
-import { useState } from "react";
-import { GetStaticPaths, GetStaticProps, NextPage } from "next";
-import { Grid, Card, Text, Button, Container, Image } from "@nextui-org/react";
+import { GetStaticPaths, GetStaticProps, NextPage } from 'next';
+import { Grid, Card, Button, Container, Text, Image } from '@nextui-org/react';
 
-import confetti from 'canvas-confetti'
-
-import { Layout } from "../../components/layouts";
-import { Pokemon } from "../../interfaces";
-import { getPokemonInfo, localFavorites } from "../../utils";
+import { pokeApi } from '../../api';
+import { Layout } from '../../components/layouts';
+import { Pokemon, PokemonListResponse } from '../../interfaces';
+import confetti from 'canvas-confetti';
+import { getPokemonInfo, localFavorites } from '../../utils';
+import { useState } from 'react';
 
 
 interface Props {
   pokemon:Pokemon;
 }
 
-const PokemonPage: NextPage<Props> = ({pokemon}) => {
-    const [isInFavorite, setIsInFavorite] = useState(localFavorites.existInFavorite(pokemon.id));  
+const PokemonByNamePage: NextPage<Props> = ({pokemon}) => {
 
-  const onToggleFavorite = () => {
+    const [isInFavorite, setIsInFavorite] = useState(localFavorites.existInFavorite(pokemon.id));
+
+    const onToggleFavorite = () => {
     localFavorites.toggleFavorite(pokemon.id);
     setIsInFavorite(!isInFavorite);
     if(!isInFavorite){
@@ -31,7 +32,7 @@ const PokemonPage: NextPage<Props> = ({pokemon}) => {
     }
 
   }
-  
+
   return (
     <Layout title={pokemon.name}>
       <Grid.Container css={{marginTop: '5px'}} gap={2}>
@@ -97,31 +98,30 @@ const PokemonPage: NextPage<Props> = ({pokemon}) => {
 }
 
 
+export const getStaticPaths: GetStaticPaths = async (ctx) => {
 
-export const  getStaticPaths: GetStaticPaths = async (ctx) => {
+    const {data} = await pokeApi.get<PokemonListResponse>('/pokemon?limit=151')
+    const pokemonNames : string[] = data.results.map(pokemon => pokemon.name);
 
-  const pokemons151 = [...Array(151)].map((value,index) => `${index + 1}`);
-
-  return {
-    paths: pokemons151.map(id=>({
-      params:{id}
+    return {
+    paths: pokemonNames.map(name=>({
+      params:{name}
     })),
     fallback:false
   }
 }
 
-
-export const getStaticProps: GetStaticProps = async ({params}) => {
-
-  const {id} = params as {id:string}
-
-  return {
-    props: {
-      pokemon: await getPokemonInfo(id)
+export const getStaticProps: GetStaticProps = async({params})=>{
+    const {name} = params as {name:string};
+    
+    return {
+        props: {
+        pokemon: await getPokemonInfo(name)
+        }
     }
-  }
 }
 
 
+export default PokemonByNamePage;
 
-export default PokemonPage;
+
